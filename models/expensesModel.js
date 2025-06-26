@@ -9,7 +9,6 @@ const expenseSchema = new mongoose.Schema(
     },
     category_display: { type: String, required: true },
     expense_type: { type: String, required: true },
-    description: { type: String },
     net_amount: { type: Number, required: true },
     vat_percentage: { type: Number, default: 0 },
     vat_amount: { type: Number, default: 0 },

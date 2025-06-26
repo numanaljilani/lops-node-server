@@ -12,7 +12,10 @@ import projectRoutes from './routes/projectRoutes.js'
 import taskRoutes from './routes/taskRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
 import timesheetRoutes from './routes/timesheetRoutes.js'
-
+import expensesRoutes from './routes/expensesRoutes.js'
+import accountsRoutes from './routes/accountsRoutes.js'
+import transactionRoutes from './routes/transactionsRoutes.js'
+import dashboardRoutes from './routes/dashboardRoutes.js'
 
 
 // Load env variables
@@ -43,6 +46,10 @@ app.use("/api/v1/project",projectRoutes)
 app.use("/api/v1/payment",paymentRoutes)
 app.use("/api/v1/task",taskRoutes)
 app.use("/api/v1/timesheet",timesheetRoutes)
+app.use("/api/v1/expenses",expensesRoutes)
+app.use("/api/v1/accounts",accountsRoutes)
+app.use("/api/v1/transactions",transactionRoutes)
+app.use("/api/v1/dashboard",dashboardRoutes)
 
 // Start server
 const PORT = process.env.PORT || 8000;

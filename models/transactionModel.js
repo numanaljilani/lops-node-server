@@ -24,14 +24,6 @@ const transactionHistorySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee'
     },
-    notes: {
-      type: String
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'verified'],
-      default: 'pending'
-    }
   },
   { timestamps: true }
 );

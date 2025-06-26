@@ -17,6 +17,9 @@ export const createTask = async (req, res) => {
 // GET All Tasks (with optional filter by paymentId)
 export const getAllTasks = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
     const filter = {};
     if (req.query.paymentId) {
       filter.paymentId = req.query.paymentId;
@@ -27,10 +30,13 @@ export const getAllTasks = async (req, res) => {
         projectId: req.query.projectId,
       }).select("_id");
       const paymentIds = payments.map((p) => p._id);
-      tasks = await Task.find({ assignedTo: req?.user?.userId , paymentId : { $in: paymentIds } })
+      tasks = await Task.find({
+        assignedTo: req?.user?.userId,
+        paymentId: { $in: paymentIds },
+      })
         .populate("paymentId assignedTo")
         .sort({ due_date: 1 });
-        console.log(tasks , "MY TASK")
+      console.log(tasks, "MY TASK");
     } else {
       tasks = await Task.find(filter)
         .populate("paymentId assignedTo")

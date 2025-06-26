@@ -9,7 +9,7 @@ export const createTimesheet = async (req, res) => {
     const employee = await Employee.findOne({ userId: req.user.userId });
 
     let total_amount = Number(req.body.hours_logged) * employee.costPerHour;
-     await Project.findByIdAndUpdate(
+    await Project.findByIdAndUpdate(
       req.body.projectId,
       {
         $inc: {
@@ -28,6 +28,9 @@ export const createTimesheet = async (req, res) => {
 
 // Get all Timesheets
 export const getAllTimesheets = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
   try {
     const timesheets = await Timesheet.find()
       .populate("projectId")

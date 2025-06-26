@@ -20,6 +20,10 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Password is required'],
       minlength: 6,
     },
+    lastPasswordUpdate: {
+      type: Date,
+
+    },
     access: {
       type: [String],
       enum: ['admin', 'accounts', 'sales', 'team lead','team member', 'subcontractor'],

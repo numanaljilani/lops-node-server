@@ -27,6 +27,9 @@ export const createPayment = async (req, res) => {
 // Get All Payments
 export const getAllPayments = async (req, res) => {
   const { projectId } = req?.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
   // console.log(req?.query?.projectId , "PAYMENT BALLS")
   try {
     let payments;
