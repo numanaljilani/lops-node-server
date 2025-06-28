@@ -7,7 +7,7 @@ export const createTimesheet = async (req, res) => {
   try {
     const { hours_logged } = req.body;
     const employee = await Employee.findOne({ userId: req.user.userId });
-
+const companyId = await Project.findById(  req.body.projectId)
     let total_amount = Number(req.body.hours_logged) * employee.costPerHour;
     await Project.findByIdAndUpdate(
       req.body.projectId,
@@ -19,7 +19,7 @@ export const createTimesheet = async (req, res) => {
       },
       { new: true }
     );
-    const timesheet = await Timesheet.create({ ...req.body, total_amount });
+    const timesheet = await Timesheet.create({ ...req.body, total_amount , companyId : companyId.companyId });
     res.status(201).json(timesheet);
   } catch (err) {
     res.status(400).json({ error: err.message });

@@ -14,6 +14,7 @@ const projectSchema = new mongoose.Schema(
     rfq: { type: mongoose.Schema.Types.ObjectId, ref: 'RFQ', required: true },
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     completion_percentage : {type : Number , default : 0},
     project_expense : {type : Number , default : 0},
     profit : {type : Number , default : 0},
@@ -49,7 +50,8 @@ projectSchema.pre('save', async function (next) {
     });
 
     const sequence = String(count + 1).padStart(3, '0');
-    this.projectId = `${companyName}-${year}-${month}-${sequence}`;
+    // this.projectId = `${companyName}-${year}-${month}-${sequence}`;
+    this.projectId = `${"JN"}-${year}-${month}-${sequence}`;
   }
   next();
 });

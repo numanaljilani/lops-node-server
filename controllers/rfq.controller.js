@@ -27,24 +27,42 @@ export const createRFQ = async (req, res) => {
 
 // Get all RFQs with pagination
 export const getAllRFQs = async (req, res) => {
-  
   try {
-    const page = parseInt(req.query.page) || 1;
+    const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
 
-    const total = await RFQ.countDocuments();
-    const data = await RFQ.find()
+    /*--------------------------------------------------------*
+     | Build a dynamic filter                                 |
+     *--------------------------------------------------------*/
+    const filter = {};
+
+    if (req.query.search) {
+      // Escape RegExp meta-chars so a search like "A.*B" isn’t treated as regex
+      const escaped = req.query?.search?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      filter.$or = [
+        { rfqId:       { $regex: escaped, $options: 'i' } }, // i = case-insensitive
+        { quotationNo: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+
+    /*--------------------------------------------------------*
+     | Query + pagination                                     |
+     *--------------------------------------------------------*/
+    const total = await RFQ.countDocuments(filter);
+
+    const data  = await RFQ.find(filter)
       .populate('client company approvedBy')
+      .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+      .limit(limit);
 
     res.status(200).json({
       total,
       page,
       totalPages: Math.ceil(total / limit),
-      data
+      data,
     });
   } catch (err) {
     console.error('Get RFQs Error:', err);

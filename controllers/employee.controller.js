@@ -157,32 +157,71 @@ export const deleteEmployee = async (req, res) => {
 
 export const getAllEmployees = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const projectId = req.query.projectId
+    const page     = parseInt(req.query.page) || 1;
+    const limit    = parseInt(req.query.limit) || 10;
+    const skip     = (page - 1) * limit;
+    const search   = req.query.search?.trim();
 
+    const matchStage = {};
 
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex   = new RegExp(escaped, 'i');
 
-    const skip = (page - 1) * limit;
+      matchStage.$or = [
+        { contact: { $regex: regex } },
+        { 'user.name': { $regex: regex } },
+        { 'user.email': { $regex: regex } },
+      ];
+    }
 
-    const total = await Employee.countDocuments();
-    const employees = await Employee.find()
-      .skip(skip)
-      .limit(limit)
-      .populate('userId', 'name email access') // Optional
-      .sort({ createdAt: -1 });
+    const aggregationPipeline = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      ...(search ? [{ $match: matchStage }] : []),
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const [data, totalResult] = await Promise.all([
+      Employee.aggregate(aggregationPipeline),
+      Employee.aggregate([
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        { $unwind: '$user' },
+        ...(search ? [{ $match: matchStage }] : []),
+        { $count: 'total' },
+      ]),
+    ]);
+
+    const total = totalResult[0]?.total || 0;
 
     res.status(200).json({
       total,
       page,
       totalPages: Math.ceil(total / limit),
-      data: employees,
+      data,
     });
   } catch (err) {
     console.error('Get All Employees Error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 export const getEmployeesByProject = async (req , res , projectId) => {
 

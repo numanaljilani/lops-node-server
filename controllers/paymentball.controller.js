@@ -1,10 +1,36 @@
+import Company from "../models/companyModel.js";
 import ProjectPayment from "../models/paymentballModel.js";
+import Project from "../models/projectModel.js";
 import TransactionHistory from "../models/transactionModel.js";
 
 // Create Payment
 export const createPayment = async (req, res) => {
   console.log(req.body);
   try {
+    const companyId = await Project.findById(req.body.projectId);
+    if(companyId?.companyId){
+      req.body.companyId = companyId.companyId;
+    }
+   const result = await ProjectPayment.aggregate([
+      {
+        $match: {
+          projectId : companyId._id,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalWeightage: { $sum: "$projectPercentage" },
+        },
+      },
+    ]);
+
+        const totalWeightage = result[0]?.totalWeightage || 0;
+    if(totalWeightage > 100 ||totalWeightage + Number(req.body.projectPercentage) ){
+      return res.status(400).json({ message: `you can not create more payment ball. max limit is 100, this ball have remaing percentage is ${100 - totalWeightage}` });
+    }
+
+
     const payment = await ProjectPayment.create(req.body);
 
     await TransactionHistory.create({
@@ -58,6 +84,7 @@ export const updatePayment = async (req, res) => {
       { new: true }
     );
     if (!payment) return res.status(404).json({ message: "Payment not found" });
+
 
     res.status(200).json({ message: "Payment updated", payment });
   } catch (err) {

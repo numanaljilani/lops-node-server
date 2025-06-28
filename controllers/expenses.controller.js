@@ -1,10 +1,28 @@
 import mongoose from "mongoose";
 import Expense from "../models/expensesModel.js";
 import Project from "../models/projectModel.js";
+import Company from "../models/companyModel.js";
 // Create Expense
 export const createExpense = async (req, res) => {
   try {
     console.log(req.body);
+    const projectCompanyId = await Project.findById(req.body.projectId);
+    if (projectCompanyId.companyId) {
+      req.body.companyId = projectCompanyId.companyId;
+    }
+
+    const count = await Expense.countDocuments({
+      companyId: projectCompanyId?.companyId,
+    });
+    const company = await Company.findById(projectCompanyId?.companyId);
+    const expenseNumber = 1001 + count;
+    const safeCompanyName = company.name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+
+    req.body.expenseId = `${safeCompanyName}-exp-${expenseNumber}`;
+
     const expense = await Expense.create(req.body);
     const updateProject = await Project.findByIdAndUpdate(
       req.body.projectId,
@@ -25,29 +43,73 @@ export const createExpense = async (req, res) => {
 // Get All Expenses with Pagination
 export const getAllExpenses = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const page   = parseInt(req.query.page)  || 1;
+    const limit  = parseInt(req.query.limit) || 10;
+    const skip   = (page - 1) * limit;
+    const search = req.query.search?.trim();
 
-    const filter = {};
-    if (projectId) {
-      filter.projectId = projectId;
+    const matchStage = {};
+
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex   = new RegExp(escaped, 'i'); // Case-insensitive
+
+      matchStage.$or = [
+        { expenseId: { $regex: regex } },
+        { 'project.projectId': { $regex: regex } },
+      ];
     }
 
-    const expenses = await Expense.find(filter)
-      .populate("projectId verifiedBy")
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
-      .sort({ created_at: -1 });
+    const aggregation = [
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'projectId',
+          foreignField: '_id',
+          as: 'project',
+        },
+      },
+      { $unwind: '$project' },
+      {
+        $lookup: {
+          from: 'employees',
+          localField: 'verifiedBy',
+          foreignField: '_id',
+          as: 'verifiedBy',
+        },
+      },
+      { $unwind: { path: '$verifiedBy', preserveNullAndEmptyArrays: true } },
+      ...(search ? [{ $match: matchStage }] : []),
+      { $sort: { created_at: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
 
-    const total = await Expense.countDocuments(filter);
+    const [data, totalResult] = await Promise.all([
+      Expense.aggregate(aggregation),
+      Expense.aggregate([
+        {
+          $lookup: {
+            from: 'projects',
+            localField: 'projectId',
+            foreignField: '_id',
+            as: 'project',
+          },
+        },
+        { $unwind: '$project' },
+        ...(search ? [{ $match: matchStage }] : []),
+        { $count: 'total' },
+      ]),
+    ]);
+
+    const total = totalResult[0]?.total || 0;
 
     res.status(200).json({
-      data: expenses,
+      data,
       total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      pages: Math.ceil(total / limit),
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (err) {
     console.error("Get All Expenses Error:", err);

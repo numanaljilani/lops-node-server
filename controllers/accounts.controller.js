@@ -1,11 +1,16 @@
 import mongoose from "mongoose";
 import ProjectPayment from "../models/paymentballModel.js";
 import TransactionHistory from "../models/transactionModel.js";
+import Company from "../models/companyModel.js";
 
 // Create Payment
 export const createPayment = async (req, res) => {
   console.log(req.body);
   try {
+    const project = project.findById(req.body.projectId)
+    if(project?.companyId){
+      req.body.companyId =  project?.companyId
+    }
     const payment = await ProjectPayment.create(req.body);
 
     res.status(201).json({ message: "Payment created", payment });
@@ -42,8 +47,7 @@ export const getAllAccountsBalls = async (req, res) => {
 export const updateAccountsPayment = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(id, "ID");
-    console.log(req.body);
+
     const updateData = req.body;
 
     // Validate ID
@@ -51,7 +55,7 @@ export const updateAccountsPayment = async (req, res) => {
       return res.status(400).json({ message: "Invalid payment ID" });
     }
 
-    console.log(req.body, "ER");
+  
     // Find and update the payment
     const updatedPayment = await ProjectPayment.findByIdAndUpdate(
       id,
@@ -61,7 +65,32 @@ export const updateAccountsPayment = async (req, res) => {
 
     if (!updatedPayment) {
       return res.status(404).json({ message: "Payment not found" });
+
     }
+
+    const company = await Company.findById(updatedPayment?.companyId); // Ensure payment has companyId
+    if (!company || !company.name) {
+      return res.status(400).json({ message: "Invalid company" });
+    }
+
+       // Step 3: Count existing payments for this company that already have invoice numbers
+    const count = await ProjectPayment.countDocuments({
+      companyId: company._id,
+      invoiceNumber: { $exists: true },
+    });
+
+        const invoiceNumber = `${company?.name?.trim()?.toLowerCase()?.replace(/\s+/g, '-')}-INV-${1001 + count}`;
+
+        console.log(req.body ,">>>>>" ,  invoiceNumber , "<<<<<")
+    // Step 4: Update payment with the generated invoice number
+    if(req?.body?.verification_status == 'invoiced' || req?.body?.verification_status == 'paid'){
+      updatedPayment.invoice_number = invoiceNumber;
+
+      await updatedPayment.save();
+    }
+
+
+
     if (updateData.verification_status == "paid") {
       await TransactionHistory.create({
         type: "payment",

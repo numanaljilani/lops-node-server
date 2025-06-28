@@ -12,6 +12,7 @@ const rfqSchema = new mongoose.Schema(
 
     client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
   },
   {

@@ -2,11 +2,42 @@ import mongoose from "mongoose";
 import ProjectPayment from "../models/paymentballModel.js";
 import Task from "../models/taskModel.js";
 import Project from "../models/projectModel.js";
+import User from "../models/User.js";
+import Employee from '../models/EmployeeModel.js'
+
 
 // CREATE Task
 export const createTask = async (req, res) => {
   try {
+    const projectPaymentId = await ProjectPayment.findById(req?.body?.paymentId)
+    if(projectPaymentId.projectId && projectPaymentId.companyId){
+      req.body.companyId = projectPaymentId.companyId
+      req.body.projectId = projectPaymentId.projectId
+    }
+
+
+    const result = await Task.aggregate([
+      {
+        $match: {
+          paymentId: projectPaymentId._id,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalWeightage: { $sum: "$weightage" },
+        },
+      },
+    ]);
+    console.log(result)
+
+    const totalWeightage = result[0]?.totalWeightage || 0;
+    if( totalWeightage + Number(req.body.weightage) > 100 ){
+      return res.status(400).json({ message: `you can not create more task. max limit is 100, this ball have remaing percentage is ${100 - totalWeightage}` });
+    }
+    // console.log(totalWeightage , ">>>")
     const task = await Task.create(req.body);
+    // console.log(req.body)
     res.status(201).json({ message: "Task created", task });
   } catch (err) {
     console.error("Create Task Error:", err);
@@ -24,22 +55,25 @@ export const getAllTasks = async (req, res) => {
     if (req.query.paymentId) {
       filter.paymentId = req.query.paymentId;
     }
+    
     let tasks;
     if (req.query.mytask) {
+      const myEmployeeId = await Employee.findOne({userId : req?.user?.userId})
+     
       const payments = await ProjectPayment.find({
         projectId: req.query.projectId,
       }).select("_id");
       const paymentIds = payments.map((p) => p._id);
       tasks = await Task.find({
-        assignedTo: req?.user?.userId,
+        assigne: myEmployeeId._id,
         paymentId: { $in: paymentIds },
       })
-        .populate("paymentId assignedTo")
+        .populate("paymentId assigne")
         .sort({ due_date: 1 });
       console.log(tasks, "MY TASK");
     } else {
       tasks = await Task.find(filter)
-        .populate("paymentId assignedTo")
+        .populate("paymentId assigne")
         .sort({ due_date: 1 });
     }
     // console.log(req.query.projectId)

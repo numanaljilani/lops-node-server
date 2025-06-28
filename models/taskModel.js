@@ -7,6 +7,8 @@ const taskSchema = new mongoose.Schema(
       ref: 'ProjectPayment',
       required: true,
     },
+      projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+      companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     task_brief: {
       type: String,
       required: true,
@@ -24,10 +26,11 @@ const taskSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    assignedTo: {
+    assigne: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee',
     },
+      companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     remarks: {
       type: String,
     },

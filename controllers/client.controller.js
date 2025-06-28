@@ -15,24 +15,43 @@ export const createClient = async (req, res) => {
 // Get All with pagination
 export const getAllClients = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
+    const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
 
-    const total = await Client.countDocuments();
-    const data = await Client.find().skip(skip).limit(limit).sort({ createdAt: -1 });
+    const filter = {};
+
+    if (req.query.search) {
+      const escaped = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex   = new RegExp(escaped, 'i'); // Case-insensitive search
+
+      filter.$or = [
+        { client_name:    { $regex: regex } },
+        { contact_person: { $regex: regex } },
+        { contact_number: { $regex: regex } },
+        { company_name:   { $regex: regex } },
+      ];
+    }
+
+    const total = await Client.countDocuments(filter);
+
+    const data = await Client.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       total,
       page,
       totalPages: Math.ceil(total / limit),
-      data
+      data,
     });
   } catch (error) {
     console.error('Get Clients Error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // Get single client
 export const getClientById = async (req, res) => {

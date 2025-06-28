@@ -1,10 +1,10 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const timesheetSchema = new mongoose.Schema(
   {
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Project',
+      ref: "Project",
     },
 
     startTime: {
@@ -17,15 +17,16 @@ const timesheetSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
     hours_logged: {
-      type:Number,
-      default : 0
+      type: Number,
+      default: 0,
     },
     total_amount: {
-      type:Number,
-      default : 0
+      type: Number,
+      default: 0,
     },
     remarks: {
       type: String,
@@ -33,11 +34,11 @@ const timesheetSchema = new mongoose.Schema(
   },
   {
     timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
+      createdAt: "created_at",
+      updatedAt: "updated_at",
     },
   }
 );
 
-const Timesheet = mongoose.model('Timesheet', timesheetSchema);
+const Timesheet = mongoose.model("Timesheet", timesheetSchema);
 export default Timesheet;

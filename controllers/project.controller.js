@@ -1,8 +1,10 @@
 import Project from "../models/projectModel.js";
+import RFQ from "../models/rfqModel.js";
 
 // Create Project
 export const createProject = async (req, res) => {
   try {
+    
     const project = new Project(req.body);
     await project.save();
     res.status(201).json({ message: "Project created", project });
@@ -15,26 +17,51 @@ export const createProject = async (req, res) => {
 // Get all projects with pagination
 export const getAllProjects = async (req, res) => {
   try {
-    const page = +req.query.page || 1;
+    /*-------------------------------------------------
+     * Pagination basics
+     *------------------------------------------------*/
+    const page  = +req.query.page  || 1;
     const limit = +req.query.limit || 10;
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
 
-    const total = await Project.countDocuments();
-    const data = await Project.find()
+    /*-------------------------------------------------
+     * Build search filter
+     *------------------------------------------------*/
+    const filter = {};
+    if (req.query.search) {
+      const escaped = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex   = new RegExp(escaped, 'i');           // case-insensitive
+
+      /* 1️⃣  Find RFQs whose rfqId OR quotationNo matches */
+      const rfqIds  = await RFQ.find(
+        { $or: [{ rfqId: regex }, { quotationNo: regex }] },
+        { _id: 1 }
+      ).lean();
+
+      /* 2️⃣  Build project filter:
+             projectId matches  OR  rfq is in the matching RFQs          */
+      filter.$or = [
+        { projectId: regex },
+        { rfq: { $in: rfqIds.map(r => r._id) } }
+      ];
+    }
+
+    /*-------------------------------------------------
+     * Query with filter + pagination
+     *------------------------------------------------*/
+    const total = await Project.countDocuments(filter);
+
+    const data  = await Project.find(filter)
       .populate([
         {
-          path: "rfq",
+          path: 'rfq',
           populate: {
-            path: "client",
-            select: "client_name contact_info",
-          },
+            path: 'client',
+            select: 'client_name contact_info'
+          }
         },
-        {
-          path: "company",
-        },
-        {
-          path: "approvedBy",
-        },
+        { path: 'company'   },
+        { path: 'approvedBy'}
       ])
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -44,11 +71,11 @@ export const getAllProjects = async (req, res) => {
       total,
       page,
       totalPages: Math.ceil(total / limit),
-      data,
+      data
     });
   } catch (err) {
-    console.error("Fetch Projects Error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error('Fetch Projects Error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

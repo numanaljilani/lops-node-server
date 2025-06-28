@@ -17,6 +17,11 @@ const projectPaymentSchema = new mongoose.Schema(
       ref: 'Project',
       required: true,
     },
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Company',
+ 
+    },
     amount: {
       type: Number,
    
@@ -102,7 +107,7 @@ const projectPaymentSchema = new mongoose.Schema(
     },
     payment_status: {
       type: String,
-      enum: ['Pending', 'Completed'],
+      enum: ['Pending', 'Completed' , "In Progress"],
       default: 'Pending',
     },
     verification_status: {
