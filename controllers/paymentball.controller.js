@@ -26,7 +26,7 @@ export const createPayment = async (req, res) => {
     ]);
 
         const totalWeightage = result[0]?.totalWeightage || 0;
-    if(totalWeightage > 100 ||totalWeightage + Number(req.body.projectPercentage) ){
+    if(totalWeightage + Number(req.body.projectPercentage) > 100){
       return res.status(400).json({ message: `you can not create more payment ball. max limit is 100, this ball have remaing percentage is ${100 - totalWeightage}` });
     }
 
