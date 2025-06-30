@@ -12,9 +12,9 @@ const projectSchema = new mongoose.Schema(
   {
     projectId: { type: String, unique: true },
     rfq: { type: mongoose.Schema.Types.ObjectId, ref: 'RFQ', required: true },
-    company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+    company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     completion_percentage : {type : Number , default : 0},
     project_expense : {type : Number , default : 0},
     profit : {type : Number , default : 0},
@@ -34,10 +34,6 @@ const projectSchema = new mongoose.Schema(
 // Generate projectId before save
 projectSchema.pre('save', async function (next) {
   if (this.isNew) {
-    const company = await Company.findById(this.company);
-    if (!company) return next(new Error('Company not found'));
-
-    const companyName = company.name.replace(/\s+/g, '');
     const year = moment().format('YYYY');
     const month = moment().format('MM');
 

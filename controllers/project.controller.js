@@ -3,9 +3,12 @@ import RFQ from "../models/rfqModel.js";
 
 // Create Project
 export const createProject = async (req, res) => {
+  console.log(req.body)
   try {
-    
-    const project = new Project(req.body);
+    const rfq = await  RFQ.findById(req.body.rfq);
+    console.log(rfq ,"RFQ")
+
+    const project = new Project({...req.body , companyId : rfq?.company , company : rfq?.company});
     await project.save();
     res.status(201).json({ message: "Project created", project });
   } catch (err) {
