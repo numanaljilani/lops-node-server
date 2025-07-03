@@ -22,12 +22,14 @@ export const createPayment = async (req, res) => {
 
 // Get All Payments
 export const getAllAccountsBalls = async (req, res) => {
-  console.log("Insdei accounts");
+  console.log("Insdei accounts" ,req?.query );
+  const projectId = req?.query.projectId
   try {
     let payments;
-    let projectId;
+   
     if (projectId) {
-      payments = await ProjectPayment.find({ completionPercentage: 100 })
+      console.log("inside project Id")
+      payments = await ProjectPayment.find({ completionPercentage: 100 , projectId })
         .populate("projectId receivedBy")
         .sort({ createdAt: -1 });
     } else {

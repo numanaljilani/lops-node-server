@@ -11,6 +11,7 @@ const paymentTermSchema = new mongoose.Schema({
 const projectSchema = new mongoose.Schema(
   {
     projectId: { type: String, unique: true },
+    project_name: { type: String },
     rfq: { type: mongoose.Schema.Types.ObjectId, ref: 'RFQ', required: true },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
@@ -33,22 +34,27 @@ const projectSchema = new mongoose.Schema(
 
 // Generate projectId before save
 projectSchema.pre('save', async function (next) {
-  if (this.isNew) {
-    const year = moment().format('YYYY');
-    const month = moment().format('MM');
+  if (!this.isNew) return next();
 
-    const count = await Project.countDocuments({
-      company: this.company,
-      createdAt: {
-        $gte: moment().startOf('month').toDate(),
-        $lte: moment().endOf('month').toDate()
-      }
-    });
+  const year = moment().format('YYYY');
+  const month = moment().format('MM');
+  let sequence = 1;
+  let unique = false;
+  let generatedId;
 
-    const sequence = String(count + 1).padStart(3, '0');
-    // this.projectId = `${companyName}-${year}-${month}-${sequence}`;
-    this.projectId = `${"JN"}-${year}-${month}-${sequence}`;
+  while (!unique) {
+    const padded = String(sequence).padStart(3, '0');
+    generatedId = `JN-${year}-${month}-${padded}`;
+
+    const existing = await mongoose.model('Project').findOne({ projectId: generatedId });
+    if (!existing) {
+      unique = true;
+    } else {
+      sequence++;
+    }
   }
+
+  this.projectId = generatedId;
   next();
 });
 

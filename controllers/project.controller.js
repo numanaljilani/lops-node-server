@@ -10,6 +10,8 @@ export const createProject = async (req, res) => {
 
     const project = new Project({...req.body , companyId : rfq?.company , company : rfq?.company});
     await project.save();
+    rfq.projectId = project._id;
+    rfq.save();
     res.status(201).json({ message: "Project created", project });
   } catch (err) {
     console.error("Create Project Error:", err);
@@ -20,6 +22,7 @@ export const createProject = async (req, res) => {
 // Get all projects with pagination
 export const getAllProjects = async (req, res) => {
   try {
+    console.log(req.query)
     /*-------------------------------------------------
      * Pagination basics
      *------------------------------------------------*/
@@ -45,6 +48,7 @@ export const getAllProjects = async (req, res) => {
              projectId matches  OR  rfq is in the matching RFQs          */
       filter.$or = [
         { projectId: regex },
+        { project_name: regex },
         { rfq: { $in: rfqIds.map(r => r._id) } }
       ];
     }

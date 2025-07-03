@@ -30,7 +30,7 @@ const taskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee',
     },
-      companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+      // companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     remarks: {
       type: String,
     },

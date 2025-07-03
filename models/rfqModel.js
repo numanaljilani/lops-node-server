@@ -9,7 +9,8 @@ const rfqSchema = new mongoose.Schema(
     remarks: { type: String },
     rfqId: { type: String, unique: true },
     quotationNo: { type: String, unique: true },
-
+    
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },

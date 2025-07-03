@@ -53,6 +53,7 @@ export const createPayment = async (req, res) => {
 // Get All Payments
 export const getAllPayments = async (req, res) => {
   const { projectId } = req?.query;
+  console.log(projectId , "PROJECTID")
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;

@@ -47,6 +47,7 @@ export const getAllExpenses = async (req, res) => {
     const limit  = parseInt(req.query.limit) || 10;
     const skip   = (page - 1) * limit;
     const search = req.query.search?.trim();
+    console.log(search , "Search")
 
     const matchStage = {};
 
@@ -123,6 +124,20 @@ export const getExpenseById = async (req, res) => {
     const expense = await Expense.findById(req.params.id).populate(
       "projectId verifiedBy"
     );
+    if (!expense) return res.status(404).json({ message: "Expense not found" });
+    res.status(200).json(expense);
+  } catch (err) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+// Get projectExpenses Expense
+export const getExpenseByProjectId = async (req, res) => {
+  try {
+    console.log(req.query.projectId , ">>>>")
+    const expense = await Expense.find({projectId : req.query.projectId}).populate(
+      "verifiedBy"
+    );
+    console.log(expense , ">>>>")
     if (!expense) return res.status(404).json({ message: "Expense not found" });
     res.status(200).json(expense);
   } catch (err) {
