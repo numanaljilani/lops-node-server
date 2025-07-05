@@ -1,8 +1,13 @@
 import moment from "moment";
 import Client from "../models/clientModel.js";
 import Project from "../models/projectModel.js";
+import Task from "../models/taskModel.js";
+import mongoose from "mongoose";
+import User from "../models/User.js";
+import Employee from "../models/EmployeeModel.js";
 
 export const getAdminDashboard = async (req, res) => {
+  console.log(req.query);
   try {
     const startOfMonth = moment().startOf("month").toDate();
     const endOfMonth = moment().endOf("month").toDate();
@@ -83,5 +88,94 @@ export const getAdminDashboard = async (req, res) => {
   } catch (err) {
     console.error("Get All Companies Error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getUserDashboard = async (req, res) =>  {
+  try {
+    
+     const user = await Employee.findOne({ userId: req.user.userId });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const assigneeId = user._id
+
+    if (!assigneeId || !mongoose.Types.ObjectId.isValid(assigneeId)) {
+      return res.status(400).json({ message: 'Valid assigneeId is required' });
+    }
+
+    // Aggregation pipeline
+    const tasks = await Task.aggregate([
+      {
+        $match: {
+          assigne: new mongoose.Types.ObjectId(assigneeId),
+          completion_percentage: { $lt: 100 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'projectId',
+          foreignField: '_id',
+          as: 'project',
+        },
+      },
+      {
+        $match: {
+          project: { $ne: [] }, // only tasks with existing project
+        },
+      },
+      {
+        $sort: { due_date: 1 },
+      },
+      { $skip: skip },
+      { $limit: limit },
+    ]);
+
+    // Total tasks count (filtered and valid)
+    const totalCountResult = await Task.aggregate([
+      {
+        $match: {
+          assigne: new mongoose.Types.ObjectId(assigneeId),
+          completion_percentage: { $lt: 100 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'projectId',
+          foreignField: '_id',
+          as: 'project',
+        },
+      },
+      {
+        $match: {
+          project: { $ne: [] },
+        },
+      },
+      {
+        $count: 'count',
+      },
+    ]);
+
+    const totalTasks = totalCountResult[0]?.count || 0;
+
+    // Count of ALL pending tasks (with or without valid projectId)
+    const pendingCount = await Task.countDocuments({
+      assigne: assigneeId,
+      completion_percentage: { $lt: 100 },
+    });
+
+    res.status(200).json({
+      success: true,
+      page,
+      totalPages: Math.ceil(totalTasks / limit),
+      totalTasks,
+      pendingCount,
+      tasks,
+    });
+  } catch (err) {
+    console.error('Error fetching tasks:', err);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };

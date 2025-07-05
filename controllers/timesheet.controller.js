@@ -37,9 +37,10 @@ export const getAllTimesheets = async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
   const projectId = req?.query?.projectId;
+  const admin = req.query.admin
   console.log(projectId, "projectId");
   let filter = {};
-  if (projectId) {
+  if (projectId && !admin) {
     filter.projectId = projectId;
   }
   try {
@@ -54,13 +55,17 @@ export const getAllTimesheets = async (req, res) => {
     //     { path: 'company'   },
     //     { path: 'approvedBy'}
     //   ]
-    const timesheets = await Timesheet.find(filter).populate([
+    const timesheets = await Timesheet.find(filter).sort({ created_at: -1 }).populate([
       {
         path: "userId",
         populate: {
           path: "userId",
           select: "name",
         },
+      },
+      {
+        path: "projectId",
+        select: "project_name projectId",
       },
     ]);
     res.json({ data: timesheets });
@@ -72,7 +77,8 @@ export const getAllTimesheets = async (req, res) => {
 // Get Timesheet by ID
 export const getTimesheetById = async (req, res) => {
   try {
-    const timesheet = await Timesheet.findById(req.params.id)
+    const timesheet = await Timesheet.findById(req.params.id)  
+    
       .populate("projectId")
       .populate("userId");
     if (!timesheet) {
