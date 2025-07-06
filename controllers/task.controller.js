@@ -55,7 +55,9 @@ export const getAllTasks = async (req, res) => {
     if (req.query.paymentId) {
       filter.paymentId = req.query.paymentId;
     }
-    
+    if(req.quey.companyId){
+      filter.companyId = req.quey.companyId
+    }
     let tasks;
     if (req.query.mytask) {
       const myEmployeeId = await Employee.findOne({userId : req?.user?.userId})

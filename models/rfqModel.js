@@ -8,7 +8,7 @@ const rfqSchema = new mongoose.Schema(
     status: { type: String, default: 'pending' },
     remarks: { type: String },
     rfqId: { type: String, unique: true },
-    quotationNo: { type: String, unique: true },
+    quotationNo: { type: String},
     
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },

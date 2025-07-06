@@ -43,64 +43,70 @@ export const createExpense = async (req, res) => {
 // Get All Expenses with Pagination
 export const getAllExpenses = async (req, res) => {
   try {
-    const page   = parseInt(req.query.page)  || 1;
-    const limit  = parseInt(req.query.limit) || 10;
-    const skip   = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
     const search = req.query.search?.trim();
-    console.log(search , "Search")
+    const companyId = req.query.companyId;
 
     const matchStage = {};
 
     if (search) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex   = new RegExp(escaped, 'i'); // Case-insensitive
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(escaped, "i");
 
       matchStage.$or = [
         { expenseId: { $regex: regex } },
-        { 'project.projectId': { $regex: regex } },
+        { "project.projectId": { $regex: regex } },
       ];
+    }
+
+    if (companyId) {
+      matchStage.companyId = new mongoose.Types.ObjectId(companyId);
     }
 
     const aggregation = [
       {
         $lookup: {
-          from: 'projects',
-          localField: 'projectId',
-          foreignField: '_id',
-          as: 'project',
+          from: "projects",
+          localField: "projectId",
+          foreignField: "_id",
+          as: "project",
         },
       },
-      { $unwind: '$project' },
+      { $unwind: "$project" },
       {
         $lookup: {
-          from: 'employees',
-          localField: 'verifiedBy',
-          foreignField: '_id',
-          as: 'verifiedBy',
+          from: "employees",
+          localField: "verifiedBy",
+          foreignField: "_id",
+          as: "verifiedBy",
         },
       },
-      { $unwind: { path: '$verifiedBy', preserveNullAndEmptyArrays: true } },
-      ...(search ? [{ $match: matchStage }] : []),
+      { $unwind: { path: "$verifiedBy", preserveNullAndEmptyArrays: true } },
+      ...(Object.keys(matchStage).length ? [{ $match: matchStage }] : []),
       { $sort: { created_at: -1 } },
       { $skip: skip },
       { $limit: limit },
     ];
 
+    const countAggregation = [
+      {
+        $lookup: {
+          from: "projects",
+          localField: "projectId",
+          foreignField: "_id",
+          as: "project",
+        },
+      },
+      { $unwind: "$project" },
+      ...(Object.keys(matchStage).length ? [{ $match: matchStage }] : []),
+      { $count: "total" },
+    ];
+
     const [data, totalResult] = await Promise.all([
       Expense.aggregate(aggregation),
-      Expense.aggregate([
-        {
-          $lookup: {
-            from: 'projects',
-            localField: 'projectId',
-            foreignField: '_id',
-            as: 'project',
-          },
-        },
-        { $unwind: '$project' },
-        ...(search ? [{ $match: matchStage }] : []),
-        { $count: 'total' },
-      ]),
+      Expense.aggregate(countAggregation),
     ]);
 
     const total = totalResult[0]?.total || 0;
@@ -117,6 +123,7 @@ export const getAllExpenses = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 // Get Single Expense
 export const getExpenseById = async (req, res) => {

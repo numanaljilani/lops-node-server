@@ -29,11 +29,15 @@ export const getAllProjects = async (req, res) => {
     const page  = +req.query.page  || 1;
     const limit = +req.query.limit || 10;
     const skip  = (page - 1) * limit;
+    const companyId = req.query.companyId
 
     /*-------------------------------------------------
      * Build search filter
      *------------------------------------------------*/
     const filter = {};
+    if(companyId){
+      filter.companyId = companyId
+    }
     if (req.query.search) {
       const escaped = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex   = new RegExp(escaped, 'i');           // case-insensitive

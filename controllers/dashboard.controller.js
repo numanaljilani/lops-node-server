@@ -7,7 +7,7 @@ import User from "../models/User.js";
 import Employee from "../models/EmployeeModel.js";
 
 export const getAdminDashboard = async (req, res) => {
-  console.log(req.query);
+  console.log(req.query.companyId);
   try {
     const startOfMonth = moment().startOf("month").toDate();
     const endOfMonth = moment().endOf("month").toDate();
@@ -16,6 +16,8 @@ export const getAdminDashboard = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+          companyId : req?.query?.companyId
+          
         },
       },
       {
@@ -36,6 +38,7 @@ export const getAdminDashboard = async (req, res) => {
         $match: {
           completion_percentage: 100,
           createdAt: { $gte: startOfMonth, $lte: endOfMonth }, // ← remove if not needed
+        companyId : req?.query?.companyId
         },
       },
 
@@ -99,6 +102,7 @@ export const getUserDashboard = async (req, res) =>  {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const assigneeId = user._id
+    console.log(req.query.companyId , "Company Id")
 
     if (!assigneeId || !mongoose.Types.ObjectId.isValid(assigneeId)) {
       return res.status(400).json({ message: 'Valid assigneeId is required' });
@@ -110,6 +114,7 @@ export const getUserDashboard = async (req, res) =>  {
         $match: {
           assigne: new mongoose.Types.ObjectId(assigneeId),
           completion_percentage: { $lt: 100 },
+          companyId : new mongoose.Types.ObjectId(req?.query?.companyId)
         },
       },
       {
@@ -138,6 +143,7 @@ export const getUserDashboard = async (req, res) =>  {
         $match: {
           assigne: new mongoose.Types.ObjectId(assigneeId),
           completion_percentage: { $lt: 100 },
+          companyId : req?.query?.companyId
         },
       },
       {
@@ -164,6 +170,7 @@ export const getUserDashboard = async (req, res) =>  {
     const pendingCount = await Task.countDocuments({
       assigne: assigneeId,
       completion_percentage: { $lt: 100 },
+      companyId : req?.query?.companyId
     });
 
     res.status(200).json({

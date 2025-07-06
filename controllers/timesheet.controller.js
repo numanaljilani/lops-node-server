@@ -1,6 +1,7 @@
 import Employee from "../models/EmployeeModel.js";
 import Timesheet from "../models/timesheetModel.js";
 import Project from "../models/projectModel.js";
+import mongoose from "mongoose";
 // Create Timesheet
 export const createTimesheet = async (req, res) => {
   console.log(req.user);
@@ -37,37 +38,31 @@ export const getAllTimesheets = async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
   const projectId = req?.query?.projectId;
-  const admin = req.query.admin
+  const admin = req.query.admin;
   console.log(projectId, "projectId");
   let filter = {};
   if (projectId && !admin) {
     filter.projectId = projectId;
   }
+  if (req.query.companyId) {
+    filter.companyId = new mongoose.Types.ObjectId(req.query.companyId);
+  }
   try {
-    // [
-    //     {
-    //       path: 'rfq',
-    //       populate: {
-    //         path: 'client',
-    //         select: 'client_name contact_info'
-    //       }
-    //     },
-    //     { path: 'company'   },
-    //     { path: 'approvedBy'}
-    //   ]
-    const timesheets = await Timesheet.find(filter).sort({ created_at: -1 }).populate([
-      {
-        path: "userId",
-        populate: {
+    const timesheets = await Timesheet.find(filter)
+      .sort({ created_at: -1 })
+      .populate([
+        {
           path: "userId",
-          select: "name",
+          populate: {
+            path: "userId",
+            select: "name",
+          },
         },
-      },
-      {
-        path: "projectId",
-        select: "project_name projectId",
-      },
-    ]);
+        {
+          path: "projectId",
+          select: "project_name projectId",
+        },
+      ]);
     res.json({ data: timesheets });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -77,8 +72,8 @@ export const getAllTimesheets = async (req, res) => {
 // Get Timesheet by ID
 export const getTimesheetById = async (req, res) => {
   try {
-    const timesheet = await Timesheet.findById(req.params.id)  
-    
+    const timesheet = await Timesheet.findById(req.params.id)
+
       .populate("projectId")
       .populate("userId");
     if (!timesheet) {
