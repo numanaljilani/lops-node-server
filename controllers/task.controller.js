@@ -55,8 +55,8 @@ export const getAllTasks = async (req, res) => {
     if (req.query.paymentId) {
       filter.paymentId = req.query.paymentId;
     }
-    if(req.quey.companyId){
-      filter.companyId = req.quey.companyId
+    if(req.query.companyId){
+      filter.companyId = req.query.companyId
     }
     let tasks;
     if (req.query.mytask) {
