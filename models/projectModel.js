@@ -48,7 +48,8 @@ projectSchema.pre('save', async function (next) {
   const datePrefix = moment().format('YYYYMM'); // yyyymm
 
   // 3. Prefix structure: CompanyName-JN-yyyymm
-  const prefix = `${companyName}-JN-${datePrefix}`;
+  // const prefix = `${companyName}-JN-${datePrefix}`;
+  const prefix = `${companyName}-JN-`;
 
   // 4. Find the last projectId that matches this prefix
   const lastProject = await mongoose.model('Project').findOne({
