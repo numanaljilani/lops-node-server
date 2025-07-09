@@ -36,25 +36,38 @@ const projectSchema = new mongoose.Schema(
 projectSchema.pre('save', async function (next) {
   if (!this.isNew) return next();
 
-  const year = moment().format('YYYY');
-  const month = moment().format('MM');
-  let sequence = 1;
-  let unique = false;
-  let generatedId;
+  // 1. Get Company Name
+  const company = await Company.findById(this.company || this.companyId).select('name');
+  if (!company || !company.name) {
+    return next(new Error('Company not found or has no name'));
+  }
 
-  while (!unique) {
-    const padded = String(sequence).padStart(3, '0');
-    generatedId = `JN-${year}-${month}-${padded}`;
+  const companyName = company.name.replace(/\s+/g, '').toUpperCase(); // Sanitize company name
 
-    const existing = await mongoose.model('Project').findOne({ projectId: generatedId });
-    if (!existing) {
-      unique = true;
-    } else {
-      sequence++;
+  // 2. Date formatting
+  const datePrefix = moment().format('YYYYMM'); // yyyymm
+
+  // 3. Prefix structure: CompanyName-JN-yyyymm
+  const prefix = `${companyName}-JN-${datePrefix}`;
+
+  // 4. Find the last projectId that matches this prefix
+  const lastProject = await mongoose.model('Project').findOne({
+    projectId: { $regex: `^${prefix}` },
+    companyId : company._id
+
+  }).sort({ createdAt: -1 });
+
+  let sequence = 1001; // Starting number
+  if (lastProject && lastProject.projectId) {
+    const lastSeq = parseInt(lastProject.projectId.slice(-4)); // Get last 4 digits
+    if (!isNaN(lastSeq)) {
+      sequence = lastSeq + 1;
     }
   }
 
-  this.projectId = generatedId;
+  const projectId = `${prefix}${sequence}`;
+  this.projectId = projectId;
+
   next();
 });
 

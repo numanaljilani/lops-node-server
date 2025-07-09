@@ -20,6 +20,9 @@ export const getAllClients = async (req, res) => {
     const skip  = (page - 1) * limit;
 
     const filter = {};
+    if(req.query.companyId){
+      filter.companyId = req.query.companyId
+    }
 
     if (req.query.search) {
       const escaped = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

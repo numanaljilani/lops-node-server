@@ -22,7 +22,7 @@ export const createRFQ = async (req, res) => {
       remarks,
       client,
       company: company || "6850144a18d7f8eeea750c20",
-      approvedBy,
+      approvedBy : req.user.userId,
     });
 
     await rfq.save();

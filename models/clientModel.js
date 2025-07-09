@@ -10,7 +10,8 @@ const clientSchema = new mongoose.Schema(
     company_name: { type: String },
     type: { type: String }, // e.g., vendor, customer, partner
     status: { type: Boolean, default: true },
-    about: { type: String }
+    about: { type: String },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
   },
   {
     timestamps: true
