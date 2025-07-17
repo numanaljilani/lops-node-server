@@ -48,6 +48,7 @@ export const getAllExpenses = async (req, res) => {
     const skip = (page - 1) * limit;
     const search = req.query.search?.trim();
     const companyId = req.query.companyId;
+    const {startDate , endDate} = req.query
 
     const matchStage = {};
 
@@ -59,6 +60,14 @@ export const getAllExpenses = async (req, res) => {
         { expenseId: { $regex: regex } },
         { "project.projectId": { $regex: regex } },
       ];
+    }
+
+      // Filter by date range (using created_at)
+    if (startDate && endDate) {
+      matchStage.created_at = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
     }
 
     if (companyId) {

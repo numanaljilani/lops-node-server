@@ -30,6 +30,8 @@ export const getAllProjects = async (req, res) => {
     const limit = +req.query.limit || 10;
     const skip  = (page - 1) * limit;
     const companyId = req.query.companyId
+    const {startDate , endDate} = req.query
+    
 
     /*-------------------------------------------------
      * Build search filter
@@ -37,6 +39,14 @@ export const getAllProjects = async (req, res) => {
     const filter = {};
     if(companyId){
       filter.companyId = companyId
+    }
+
+      // Filter by date range (using createdAt or delivery_timelines)
+    if (startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
     }
     if (req.query.search) {
       const escaped = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -41,7 +41,8 @@ export const getAllRFQs = async (req, res) => {
     const skip = (page - 1) * limit;
     const companyId = req.query.companyId;
     const status = req.query.status;
-    console.log(companyId, "companyId ");
+    const {startDate , endDate} = req.query
+    console.log(req.query, "Query");
 
     /*--------------------------------------------------------*
      | Build a dynamic filter                                 |
@@ -57,6 +58,14 @@ export const getAllRFQs = async (req, res) => {
       filter.projectId = { $ne: null };
     }else{
       
+    }
+
+        // Filter by date range
+    if (startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
     }
 
     if (req.query.search) {

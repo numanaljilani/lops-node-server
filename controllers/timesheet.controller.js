@@ -39,11 +39,21 @@ export const getAllTimesheets = async (req, res) => {
   const skip = (page - 1) * limit;
   const projectId = req?.query?.projectId;
   const admin = req.query.admin;
-  console.log(projectId, "projectId");
+  const {startDate,endDate} = req.query
+  console.log(req.query.companyId, "req.query.companyId");
   let filter = {};
   if (projectId && !admin) {
-    filter.projectId = projectId;
+    console.log("inside projectId")
+    filter.projectId =  new mongoose.Types.ObjectId(projectId);
   }
+  
+    // Filter by date range (using created_at or date_logged)
+    if (startDate && endDate) {
+      filter.created_at = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
   if (req.query.companyId) {
     filter.companyId = new mongoose.Types.ObjectId(req.query.companyId);
   }

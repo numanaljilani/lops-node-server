@@ -6,18 +6,37 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import Employee from "../models/EmployeeModel.js";
 
-export const getAdminDashboard = async (req, res) => {
-  console.log(req.query.companyId);
-  try {
-    const startOfMonth = moment().startOf("month").toDate();
-    const endOfMonth = moment().endOf("month").toDate();
 
+export const getAdminDashboard = async (req, res) => {
+  try {
+    const { companyId, startDate, endDate } = req.query;
+
+    // Validate companyId
+    if (!companyId || !mongoose.Types.ObjectId.isValid(companyId)) {
+      return res.status(400).json({ message: 'Invalid or missing company ID' });
+    }
+
+    // Set default date range to current month if not provided
+    let start = startDate ? new Date(startDate) : moment().startOf('month').toDate();
+    let end = endDate ? new Date(endDate) : moment().endOf('month').toDate();
+
+    // Validate dates
+    if (startDate && isNaN(start.getTime())) {
+      return res.status(400).json({ message: 'Invalid start date' });
+    }
+    if (endDate && isNaN(end.getTime())) {
+      return res.status(400).json({ message: 'Invalid end date' });
+    }
+    if (start > end) {
+      return res.status(400).json({ message: 'Start date must be before end date' });
+    }
+
+    // Total Sales (sum of final_amount)
     const result = await Project.aggregate([
       {
         $match: {
-          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
-          companyId : req?.query?.companyId
-          
+          createdAt: { $gte: start, $lte: end },
+          company: new mongoose.Types.ObjectId(companyId),
         },
       },
       {
@@ -25,74 +44,78 @@ export const getAdminDashboard = async (req, res) => {
           _id: null,
           totalFinalAmount: {
             $sum: {
-              $toDouble: "$final_amount", // Convert from string to number if needed
+              $toDouble: { $ifNull: ['$final_amount', '0'] }, // Handle null/undefined
             },
           },
         },
       },
     ]);
 
+    // Total Net Profit (for completed projects)
     const profit = await Project.aggregate([
-      // ── 1) keep only fully-completed projects ────────────────────────────────
+      // Match fully completed projects within date range and company
       {
         $match: {
           completion_percentage: 100,
-          createdAt: { $gte: startOfMonth, $lte: endOfMonth }, // ← remove if not needed
-        companyId : req?.query?.companyId
+          createdAt: { $gte: start, $lte: end },
+          company: new mongoose.Types.ObjectId(companyId),
         },
       },
-
-      // ── 2) turn string fields into numbers when necessary ───────────────────
+      // Convert string fields to numbers
       {
         $project: {
-          finalAmountNum: { $toDouble: "$final_amount" },
-          employeeCostNum: { $toDouble: "$employee_cost" },
-          totalExpensesNum: { $toDouble: "$total_expenses" },
+          finalAmountNum: { $toDouble: { $ifNull: ['$final_amount', '0'] } },
+          employeeCostNum: { $toDouble: { $ifNull: ['$employee_cost', '0'] } },
+          totalExpensesNum: { $toDouble: { $ifNull: ['$total_expenses', '0'] } },
         },
       },
-
-      // ── 3) compute net profit per project: final − (employee + expenses) ────
+      // Compute net profit per project
       {
         $addFields: {
           netProfit: {
             $subtract: [
-              "$finalAmountNum",
-              { $add: ["$employeeCostNum", "$totalExpensesNum"] },
+              '$finalAmountNum',
+              { $add: ['$employeeCostNum', '$totalExpensesNum'] },
             ],
           },
         },
       },
-
-      // ── 4) sum the net profits (or remove this stage if you want
-      //       the per-project breakdown instead of a grand total) ──────────────
+      // Sum net profits
       {
         $group: {
           _id: null,
-          totalNetProfit: { $sum: "$netProfit" },
+          totalNetProfit: { $sum: '$netProfit' },
         },
       },
     ]);
 
-    const totalNetProfit = profit[0]?.totalNetProfit || 0;
-
-    const total = result[0]?.totalFinalAmount || 0;
-
+    // Active Projects (incomplete projects for the company)
     const activeProjects = await Project.countDocuments({
       completion_percentage: { $lt: 100 },
+      company: new mongoose.Types.ObjectId(companyId),
     });
-    const activeClients = await Client.countDocuments({ status: true });
+
+    // Active Clients (clients with status true for the company)
+    const activeClients = await Client.countDocuments({
+      status: true,
+      company: new mongoose.Types.ObjectId(companyId),
+    });
+
+    const totalSales = result[0]?.totalFinalAmount || 0;
+    const totalNetProfit = profit[0]?.totalNetProfit || 0;
 
     res.status(200).json({
       activeProjects,
       activeClients,
-      totalSales: total,
+      totalSales,
       totalNetProfit,
     });
   } catch (err) {
-    console.error("Get All Companies Error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error('Get Admin Dashboard Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
 
 export const getUserDashboard = async (req, res) =>  {
   try {
